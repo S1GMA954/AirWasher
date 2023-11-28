@@ -10,6 +10,8 @@ import time
 import random
 # Custom List
 from DataList import DataList
+# Custom widget
+from OwnWidgets import Card
 # CSV import
 import csv
 # Matplotlib for Charts
@@ -19,9 +21,12 @@ from matplotlib.animation import FuncAnimation
 # Matplotlib + Tkinter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# GUI config imports
+from guiConfigs import colors, fonts, fcolors
+
 # vars for global control
 data_arduino = DataList(["airPower,particles,airFlow,waterFlow,faucetState,ppm"])
-timeOfUpdate = 3000 # in Miliseconds
+timeOfUpdate = 1000 # in Miliseconds
 
 # Getting data
 
@@ -37,7 +42,7 @@ def reading_data(stopFlag):
             airPower = random.randrange(1,255, 1)
             particles = round(random.uniform(1,3), 1)
             airFlow = round(random.uniform(2,3), 1)
-            waterFlow = round(random.uniform(2,3), 1)
+            waterFlow = round(random.uniform(2,3), 2)
             faucetState = 1
             ppm = random.randrange(1,254, 1)
             dataList.append(str(airPower))
@@ -52,12 +57,6 @@ def reading_data(stopFlag):
         data_arduino.append(result)
         time.sleep(1)
 
-
-# GUI Global configs
-colors = {
-    "fondo": "#333333",
-    "chart": "#FFFFFF"
-}
 
 def controlsIf():
     ctrl = Toplevel()
@@ -174,7 +173,7 @@ def root():
 
             for i in csv_reader:
                 lastData = i
-                waterFData.append(i["airPower"])
+                waterFData.append(i["waterFlow"])
                 airFData.append(i["airFlow"])
             
             percentage = round((float(lastData["airPower"])/255) * 100, 0)
@@ -218,19 +217,45 @@ def root():
     menuBar.add_cascade(label="Controles", menu=controls)
     menuBar.add_cascade(label="Arrancar/Detener", menu=shutdown)
 
+    sideBar = Frame(master=rootWindow)
+    sideBar.config(bg=colors["sidebar"], width=180, border=1, relief='solid')
+    sideBar.pack(side='left', fill=Y)
+
+
+    sbOption1 = Label(
+        master=sideBar, 
+        text="Dashboard", 
+        font=fonts["normal"], 
+        fg=fcolors["sb-light-theme"], 
+        bg=colors["sidebar"]
+        )
+    sbOption1.place(x=30,y=30)
+
     mainContent = Frame(master=rootWindow)
-    mainContent.config(bg=colors["fondo"])
-    mainContent.pack(fill=BOTH)
+    mainContent.config(bg=colors["fondo"], border=1, relief='solid')
+    mainContent.pack(side='right',expand=True, fill=X)
     scrollbar = Scrollbar(mainContent, orient=VERTICAL)
     scrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
 
+    topFrame = Frame(mainContent)
+    topFrame.pack(fill=X)
+
+    card1 = Frame(topFrame)
+    card1.config(bg=colors["card-green"], border=1, relief='solid')
+    card1.grid(row=0,column=2, ipady=3, sticky='w')
+
+    card2 = Frame(topFrame)
+    card2.config(bg=colors["card-blue"], border=1, relief='solid')
+    card2.grid(row=0, column=5, ipady=3, sticky='e')
+
+
     # Title 1
     t1 = Label(
-        mainContent,
+        card1,
         text="Condiciones de entrada del aire", 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-green"],
+        fg=fcolors["light-theme"]
         )#.place(x=60, y=20)
     t1.pack()
 
@@ -238,54 +263,54 @@ def root():
     airPower = StringVar()
     airPower.set("Potencia de aspirado: Sin datos aún")
     p1 = Label(
-        mainContent,
+        card1,
         textvariable=airPower, # insert the power percentage 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-green"],
+        fg=fcolors["light-theme"]
         )#.place(x=60, y=100)
     p1.pack()
 
     airFlow = StringVar()
     airFlow.set('Flujo de aire: Sin datos aún')
     p2 = Label(
-        mainContent,
+        card1,
         textvariable=airFlow, # insert air flow rate 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-green"],
+        fg=fcolors["light-theme"]
         )#.place(x=60 , y=140)
     p2.pack()
     
     particles = StringVar()
     particles.set("Partículas en el aire: Sin datos aún")
     p3 = Label(
-        mainContent,
+        card1,
         textvariable=particles, 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-green"],
+        fg=fcolors["light-theme"]
         )#.place(x=60, y=180)
     p3.pack()
     
     # Title 2
     t2 = Label(
-        mainContent,
+        card2,
         text="Condiciones del agua entrada", 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-blue"],
+        fg=fcolors["light-theme"]
         )#.place(x=500, y=20)
     t2.pack()
 
     faucetState = StringVar()
     faucetState.set('Estado de la compuerta: Sin datos aún')
     p4 = Label(
-        mainContent,
+        card2,
         textvariable=faucetState, # insert faucet state 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-blue"],
+        fg=fcolors["light-theme"]
         )#.place(x=500, y=100)
     p4.pack()
 
@@ -293,22 +318,22 @@ def root():
     waterFlow = StringVar()
     waterFlow.set('Flujo de agua: sin datos aún')
     p5 = Label(
-        mainContent,
+        card2,
         textvariable=waterFlow,   # insert water flow rate
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-blue"],
+        fg=fcolors["light-theme"]
         )#.place(x=500, y=140)
     p5.pack()
     
     ppm = StringVar()
     ppm.set('Material disuelto: sin datos aún')
     p6 = Label(
-        mainContent,
+        card2,
         textvariable=ppm, # insert tds sensor value 
-        font=("Verdana", 12),
-        bg = colors["fondo"],
-        fg="white"
+        font=fonts["normal"],
+        bg = colors["card-blue"],
+        fg=fcolors["light-theme"]
         )#.place(x=500, y=180)
     p6.pack()
     
