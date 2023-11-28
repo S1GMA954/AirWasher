@@ -10,8 +10,7 @@ import time
 import random
 # Custom List
 from DataList import DataList
-# Custom widget
-from OwnWidgets import Card
+
 # CSV import
 import csv
 # Matplotlib for Charts
@@ -26,7 +25,7 @@ from guiConfigs import colors, fonts, fcolors
 
 # vars for global control
 data_arduino = DataList(["airPower,particles,airFlow,waterFlow,faucetState,ppm"])
-timeOfUpdate = 1000 # in Miliseconds
+timeOfUpdate = 2000 # in Miliseconds
 
 # Getting data
 
@@ -38,11 +37,11 @@ def reading_data(stopFlag):
     while not stopFlag.is_set():
         #data = ser.readline().decode('ascii').strip()
         dataList = DataList()
-        for i in range(1,3,1):
+        for i in range(0,1,1):
             airPower = random.randrange(1,255, 1)
             particles = round(random.uniform(1,3), 1)
-            airFlow = round(random.uniform(2,3), 1)
-            waterFlow = round(random.uniform(2,3), 2)
+            airFlow = round(random.uniform(1,3), 1)
+            waterFlow = round(random.uniform(1,3), 2)
             faucetState = 1
             ppm = random.randrange(1,254, 1)
             dataList.append(str(airPower))
@@ -167,25 +166,30 @@ def root():
     def updateData():
         try:
             csv_reader = csv.DictReader(data_arduino)
-            rootWindow.after(timeOfUpdate, updateData)
 
             nonlocal lastData
 
             for i in csv_reader:
                 lastData = i
-                waterFData.append(i["waterFlow"])
-                airFData.append(i["airFlow"])
-            
+                waterFData.append(float(i["waterFlow"]))
+                airFData.append(float(i["airFlow"]))
+
+            print(lastData)
+
+
             percentage = round((float(lastData["airPower"])/255) * 100, 0)
             airPower.set(f'Potencia de aspirado en {percentage}%')
             particles.set(f'Partículas en el aire: {lastData["particles"]} µg/m³')
             airFlow.set(f'Flujo de aire: {lastData["airFlow"]} L/min')
             waterFlow.set(f'Flujo de agua: {lastData["waterFlow"]} L/min')
 
-            fstate = 'abierto' if lastData["faucetState"] == '1' else "cerrada"
+            fstate = 'abierto' if lastData["faucetState"] == "1" else "cerrada"
             faucetState.set(f'Estado de la compuerta: {fstate}')
 
             ppm.set(f'Material disuelto: {lastData["ppm"]} ppm')
+            time.sleep(1)
+
+            rootWindow.after(timeOfUpdate, updateData)
             
             pass
         except KeyboardInterrupt:
@@ -238,15 +242,24 @@ def root():
     scrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
 
     topFrame = Frame(mainContent)
-    topFrame.pack(fill=X)
+    topFrame.config(bg=colors["fondo"])
+    topFrame.pack(ipady=15)
 
     card1 = Frame(topFrame)
-    card1.config(bg=colors["card-green"], border=1, relief='solid')
-    card1.grid(row=0,column=2, ipady=3, sticky='w')
+    card1.config(
+        bg=colors["card-green"], 
+        border=1, 
+        relief='solid',
+        )
+    card1.pack(side='left', ipadx=5)
 
     card2 = Frame(topFrame)
-    card2.config(bg=colors["card-blue"], border=1, relief='solid')
-    card2.grid(row=0, column=5, ipady=3, sticky='e')
+    card2.config(
+        bg=colors["card-blue"], 
+        border=1, 
+        relief='solid',
+        )
+    card2.pack(side='right', ipadx=5)
 
 
     # Title 1
@@ -337,28 +350,44 @@ def root():
         )#.place(x=500, y=180)
     p6.pack()
     
-    # Chart 1 : water flow rate VS air flow rate
+    # Chart: water flow rate VS air flow rate
     fig, ax1 = plt.subplots()
+    ax1.set_title("Comparativa entre flujo de aire y flujo de agua en las últimas 10 lecturas")
     ax2 = ax1.twinx()
+    canvas = FigureCanvasTkAgg(fig, master=mainContent)
+    canvas.get_tk_widget().pack()
+    # Inicializar líneas en los ejes
+    line1, = ax1.plot([], [], color='tab:green')  # water flow chart
+    line2, = ax2.plot([], [], color='tab:blue')  # air flow chart
+
+    def init():
+        line1.set_data([], [])
+        line2.set_data([], [])
+        return line1, line2
 
     def animate(frame):
-        ax1.clear()
-        ax2.clear()
-        ax1.plot(waterFData, color='tab:red') # water flow chart
-        ax1.set_ylabel('caudal agua (L/min)', color='tab:red')
+        # Actualizar datos de las líneas
+        line1.set_data(range(len(airFData)), airFData)
+        line2.set_data(range(len(waterFData)), waterFData)
+
+        # Configurar propiedades de la gráfica
+        ax1.set_ylabel('caudal agua (L/min)', color='tab:blue')
+        ax2.set_ylabel('caudal aire (L/min)', color='tab:green')  
+        ax1.set_xlabel('n° de lecturas', loc='center')
         ax1.yaxis.set_label_position('left')
-        ax2.plot(airFData, color='tab:blue') # air flow chart
-        ax2.set_ylabel('caudal aire (L/min)', color='tab:blue')  # we already handled the x-label with ax1
         ax2.yaxis.set_label_position('right')
 
-        ax1.set_xlabel('tiempo (s)', loc='center')
+        # Configurar escalas
+        ax1.set_yticks(range(1,11))
+        ax1.set_ylim(0, 5)
+        ax2.set_yticks(range(1,11))
+        ax2.set_ylim(0, 5)
+        ax1.set_xlim(0, len(waterFData))
 
-        canvas.draw()
+        return line1, line2
 
+    animation = FuncAnimation(fig, animate, init_func=init, interval=5000, frames=10, cache_frame_data=True)
 
-    animation = FuncAnimation(fig, animate, interval=1000, cache_frame_data=False)
-    canvas = FigureCanvasTkAgg(fig, master=mainContent)
-    canvas.get_tk_widget().pack()#.place(x=60, y=300)
 
     
 
